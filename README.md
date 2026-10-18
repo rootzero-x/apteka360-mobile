@@ -152,13 +152,31 @@ android/                # native Android loyihasi (Gradle)
 env.sh                  # lokal toolchain PATH
 ```
 
+## Sinov (emulyator, Android 14, Pixel 6)
+
+Bu kompyuterda `~/android-sdk` ga emulyator ham o‘rnatilgan (AVD nomi `apteka360`). Tekshirilgan:
+
+| Holat | Natija |
+|---|---|
+| Ilova ochilishi | web-panel login sahifasi ([docs/screenshots/login.png](docs/screenshots/login.png)) |
+| Internet o‘chiq | o‘zbekcha offline ekran ([docs/screenshots/offline.png](docs/screenshots/offline.png)) |
+| Internet qaytdi | ilova o‘zi bosh sahifani qayta yukladi |
+| Orqaga tugmasi | tarix bo‘lsa orqaga, bo‘lmasa orqa fonga (jarayon tirik qoladi) |
+| Landshaft | ishlaydi ([docs/screenshots/landscape.png](docs/screenshots/landscape.png)) |
+
+```bash
+source env.sh
+emulator -avd apteka360 &
+adb install -r dist/app-debug.apk
+```
+
 ## Cheklovlar
 
 - **X-Client XHR’da yo‘q.** Android WebView `fetch`/XMLHttpRequest so‘rovlariga native tomondan sarlavha qo‘sha olmaydi.
   Sarlavha faqat sahifa (main-frame) so‘rovlarida ketadi. API so‘rovlarida `X-Client: mobile/<versiya>` bo‘lishi uchun
   web-panel (`apteka360-frontend-web`) Capacitor ichida ekanini aniqlab (`window.Capacitor?.isNativePlatform()` yoki
   UA’dagi `Apteka360Mobile/<versiya>`) o‘zi sarlavhani qo‘shishi kerak — 3–5 qatorlik o‘zgarish.
-- **HLS jonli ko‘rish** qurilmada tekshirilmagan (bu kompyuterda Android qurilma yo‘q). WebView HLS’ni qo‘llaydi,
+- **HLS jonli ko‘rish** haqiqiy qurilmada va login ortidagi kamera sahifasida tekshirilmagan (emulyatorda faqat login ekranigacha sinaldi). WebView HLS’ni qo‘llaydi,
   lekin kamera oqimi HTTPS bo‘lishi shart (`allowMixedContent=false`); `http://` HLS bo‘lsa, kameralar proxy orqali HTTPS’da berilishi kerak.
 - **Offline ekran** faqat asosiy sahifa yuklanmaganda chiqadi. Sahifa ochiq turganda internet uzilsa, web-panelning o‘z xato xabarlari ishlaydi.
 - **Sessiya saqlanishi** web-panel cookie/localStorage’iga bog‘liq; WebView ularni ilova o‘chirilguncha saqlaydi.

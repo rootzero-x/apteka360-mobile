@@ -37,6 +37,7 @@ public class MainActivity extends BridgeActivity {
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
     private volatile boolean showingErrorPage = false;
+    private boolean firstPageLoaded = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -67,7 +68,17 @@ public class MainActivity extends BridgeActivity {
             @Override
             public void onPageLoaded(WebView view) {
                 String url = view.getUrl();
+                boolean wasErrorPage = showingErrorPage;
                 showingErrorPage = url != null && url.endsWith("/error.html");
+                if (wasErrorPage && !showingErrorPage) {
+                    view.clearHistory(); // offline sahifa tarixda qolmasin
+                }
+                if (!firstPageLoaded && !showingErrorPage) {
+                    // Capacitor'ning boshlang'ich yuklashi + bizning sarlavhali qayta yuklash
+                    // tarixda 2 ta yozuv qoldirmasin: orqaga tugmasi darhol orqa fonga o'tkazsin.
+                    firstPageLoaded = true;
+                    view.clearHistory();
+                }
             }
         });
 
@@ -78,10 +89,13 @@ public class MainActivity extends BridgeActivity {
                 if (super.shouldOverrideUrlLoading(view, request)) {
                     return true; // Capacitor tashqi havolani brauzerga yubordi
                 }
+                Map<String, String> headers = request.getRequestHeaders();
+                boolean hasClient = headers != null && headers.containsKey("X-Client");
                 if (request.isForMainFrame()
+                        && !request.isRedirect()
                         && "GET".equalsIgnoreCase(request.getMethod())
                         && isAppHost(request.getUrl().getHost())
-                        && !request.getRequestHeaders().containsKey("X-Client")) {
+                        && !hasClient) {
                     view.loadUrl(request.getUrl().toString(), clientHeaders());
                     return true;
                 }
