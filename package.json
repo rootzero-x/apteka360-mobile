@@ -1,0 +1,24 @@
+{
+  "name": "apteka360-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Apteka 360 — Android (Capacitor 6) ilovasi, WebView: https://apteka.agrom24.uz",
+  "scripts": {
+    "sync": "cap sync android",
+    "open": "cap open android",
+    "build:debug": "cap sync android && cd android && ./gradlew assembleDebug",
+    "build:release": "cap sync android && cd android && ./gradlew assembleRelease",
+    "assets": "capacitor-assets generate --android --iconBackgroundColor '#0f766e' --iconBackgroundColorDark '#0f766e' --splashBackgroundColor '#0f766e' --splashBackgroundColorDark '#0f766e'",
+    "install:debug": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.2",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.2.2",
+    "@capacitor/push-notifications": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.2.2"
+  }
+}

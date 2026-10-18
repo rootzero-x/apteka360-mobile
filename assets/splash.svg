@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732" viewBox="0 0 2732 2732">
+  <rect width="2732" height="2732" fill="#0f766e"/>
+  <g transform="translate(1366 1300)">
+    <circle r="300" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="38" stroke-dasharray="1360 525" stroke-linecap="round" transform="rotate(-60)"/>
+    <rect x="-72" y="-200" width="144" height="400" rx="36" fill="#ffffff"/>
+    <rect x="-200" y="-72" width="400" height="144" rx="36" fill="#ffffff"/>
+  </g>
+  <text x="1366" y="1760" text-anchor="middle" font-family="Roboto, Arial, sans-serif" font-size="120" font-weight="700" fill="#ffffff">Apteka 360</text>
+</svg>
