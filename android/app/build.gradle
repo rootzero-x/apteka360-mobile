@@ -1,4 +1,9 @@
-apply plugin: 'com.android.application'
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+    id 'org.jetbrains.kotlin.plugin.serialization'
+}
 
 // Release imzosi: android/keystore.properties (git'ga tushmaydi) bo'lsa ishlatiladi.
 def keystorePropsFile = rootProject.file("keystore.properties")
@@ -8,70 +13,87 @@ if (keystorePropsFile.exists()) {
 }
 
 android {
-    namespace "uz.apteka360.app"
-    compileSdk rootProject.ext.compileSdkVersion
+    namespace 'uz.apteka360.app'
+    compileSdk 34
+
     defaultConfig {
-        applicationId "uz.apteka360.app"
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
-            ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
-        }
+        applicationId 'uz.apteka360.app'
+        minSdk 24
+        targetSdk 34
+        versionCode 2
+        versionName '1.0.0'
+        buildConfigField 'String', 'API_BASE_URL', '"https://api-apteka.agrom24.uz"'
+        vectorDrawables { useSupportLibrary true }
     }
-    buildFeatures {
-        buildConfig true
-    }
+
     signingConfigs {
-        if (keystoreProps.containsKey("storeFile")) {
+        if (keystoreProps.containsKey('storeFile')) {
             release {
-                storeFile rootProject.file(keystoreProps["storeFile"])
-                storePassword keystoreProps["storePassword"]
-                keyAlias keystoreProps["keyAlias"]
-                keyPassword keystoreProps["keyPassword"]
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
             }
         }
     }
+
     buildTypes {
         release {
-            if (keystoreProps.containsKey("storeFile")) {
+            if (keystoreProps.containsKey('storeFile')) {
                 signingConfig signingConfigs.release
             }
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+            // Lokal API bilan sinash: ./gradlew assembleDebug -PapiBaseUrl=http://10.0.2.2:4000  (emulyator → host)
+            if (project.hasProperty('apiBaseUrl')) {
+                buildConfigField 'String', 'API_BASE_URL', "\"${project.property('apiBaseUrl')}\""
+            }
         }
     }
-}
 
-repositories {
-    flatDir{
-        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
+    kotlinOptions { jvmTarget = '17' }
+    buildFeatures { compose true; buildConfig true }
+    packaging { resources { excludes += ['/META-INF/{AL2.0,LGPL2.1}'] } }
 }
 
 dependencies {
-    implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
-    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
-    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
-    implementation project(':capacitor-android')
-    testImplementation "junit:junit:$junitVersion"
-    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
-    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
-    implementation project(':capacitor-cordova-android-plugins')
-}
+    def composeBom = platform('androidx.compose:compose-bom:2024.09.03')
+    implementation composeBom
 
-apply from: 'capacitor.build.gradle'
+    implementation 'androidx.core:core-ktx:1.13.1'
+    implementation 'androidx.core:core-splashscreen:1.0.1'
+    implementation 'androidx.activity:activity-compose:1.9.2'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.8.6'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6'
+    implementation 'androidx.navigation:navigation-compose:2.8.2'
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.material:material-icons-extended'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+    implementation 'androidx.datastore:datastore-preferences:1.1.1'
+    implementation 'androidx.browser:browser:1.8.0'
+
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+
+    // HLS jonli ko'rish
+    implementation 'androidx.media3:media3-exoplayer:1.4.1'
+    implementation 'androidx.media3:media3-exoplayer-hls:1.4.1'
+    implementation 'androidx.media3:media3-ui:1.4.1'
+
+    // Push (FCM) — google-services.json qo'shilganda ishlaydi
+    implementation 'com.google.firebase:firebase-messaging:24.0.2'
 }

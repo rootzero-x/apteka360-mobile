@@ -1,51 +1,60 @@
-# Apteka 360 — Android ilovasi
+# Apteka 360 — Android ilovasi (native)
 
-Apteka 360 dorixona tarmog‘i boshqaruv tizimining Android ilovasi. Ilova **Capacitor 6** asosida qurilgan
-va WebView ichida web-panelni (`https://apteka.agrom24.uz`) ochadi. Barcha biznes mantiq web-panelda;
-bu repo faqat native qobiq, ikonka/splash, offline ekran va build/imzolash sozlamalarini saqlaydi.
+Apteka 360 dorixona tarmog‘i boshqaruv tizimining **native Android ilovasi**: Kotlin + Jetpack Compose (Material 3),
+to‘g‘ridan-to‘g‘ri API bilan ishlaydi (`https://api-apteka.agrom24.uz`, qo‘llanma: `apteka360-backend/docs/API-MOBILE-DESKTOP.md`).
+WebView yo‘q — barcha ekranlar native.
 
 | | |
 |---|---|
 | Ilova nomi | Apteka 360 |
-| applicationId | `uz.apteka360.app` |
-| Versiya | 1.0.0 (versionCode 1) — `android/app/build.gradle` |
-| minSdk / target | 22 (Android 5.1) / 34 (Android 14) |
-| Web manzil | `https://apteka.agrom24.uz` — `capacitor.config.json` → `server.url` |
-| Orientatsiya | portret va landshaft (cheklanmagan) |
+| applicationId | `uz.apteka360.app` (debug: `uz.apteka360.app.debug`) |
+| Versiya | 1.0.0 (versionCode 2) — `android/app/build.gradle` |
+| minSdk / target | 24 (Android 7.0) / 34 (Android 14) |
+| API | `BuildConfig.API_BASE_URL` — `android/app/build.gradle` |
+| Stek | Kotlin 2.0, Compose BOM 2024.09, Navigation, OkHttp, kotlinx.serialization, Media3 (HLS), EncryptedSharedPreferences, Firebase Messaging |
 
-## Nimalar qilingan
+## Ekranlar
 
-- **WebView qobig‘i** — `server.url` orqali prod web-panel yuklanadi; lokal `www/` faqat offline sahifa uchun.
-- **Orqaga tugmasi** WebView tarixida orqaga yuradi; tarix tugaganda ilova yopilmaydi, orqa fonga o‘tadi
-  ([MainActivity.java](android/app/src/main/java/uz/apteka360/app/MainActivity.java)).
-- **Internet yo‘q** — o‘zbekcha xato ekrani ([www/error.html](www/error.html)) va «Qayta urinish» tugmasi
-  (Capacitor `server.errorPath`). Tarmoq qaytganda ilova o‘zi bosh sahifani qayta yuklaydi (ConnectivityManager).
-- **Tashqi havolalar** (boshqa domen, `tel:`, `mailto:`, Telegram va h.k.) tizim brauzerida/ilovasida ochiladi —
-  Capacitor `Bridge.launchIntent` standart xatti-harakati; `server.url` domeni WebView ichida qoladi.
-- **X-Client sarlavhasi** — `X-Client: mobile/1.0.0` va `X-Client-Device: <brend> <model> · Apteka 360`
-  asosiy (main-frame) sahifa so‘rovlariga qo‘shiladi. Cheklov: WebView ichidagi `fetch`/XHR so‘rovlariga native
-  tomondan sarlavha qo‘shib bo‘lmaydi (pastdagi «Cheklovlar»ga qarang).
-- **User-Agent** ga `Apteka360Mobile/1.0.0 (android)` qo‘shiladi — web-panel shu orqali mobil ilovani aniqlay oladi.
-- **Ikonka va splash** — `assets/` dagi SVG manbalardan `@capacitor/assets` bilan generatsiya qilinadi (adaptive icon, light/dark splash).
-- **Push uchun joy** — `@capacitor/push-notifications` o‘rnatilgan, `POST_NOTIFICATIONS` ruxsati manifestda,
-  `google-services.json` bo‘lsa Gradle plagin avtomatik ulanadi (pastda qadamlar).
-- **HLS video** — Android System WebView (Chromium) `<video src="…m3u8">` ni native qo‘llab-quvvatlaydi;
-  qo‘shimcha kutubxona kerak emas. Fullscreen video Capacitor `BridgeWebChromeClient` orqali ishlaydi.
+**Kirish (hamma uchun)** — login + parol → SMS/Telegram kodi (qayta yuborish taymeri, qolgan urinishlar) → yangi qurilmani
+tasdiqlash («Bu men» / «Bu men emas — bloklash») → sessiya. «Parolni unutdim» oqimi (kod → yangi parol).
+Refresh token Android Keystore bilan shifrlangan holda saqlanadi, access token faqat xotirada; ilova ochilganda refresh orqali
+tiklanadi, 401 da login ekraniga qaytadi.
 
-## Talablar (build uchun)
+**Xodim (EMPLOYEE)** — haftalik grafik, avans/ta’til/smena almashish so‘rovlari (bottom-sheet formalar), limit va ta’til qoldig‘i,
+jarima kartasi va e’tiroz, o‘z so‘rovlari holati, hamkasblarning smena so‘rovlariga rozilik, push xabarlar.
 
-- Node.js 22 + npm
-- JDK 17 (Android Gradle Plugin 8.2 uchun; JDK 25 bilan ishlamaydi)
+**Mudir / Egasi (MANAGER, OWNER)** — kutayotgan so‘rovlar (avans, ta’til, smena, e’tiroz) bo‘yicha qaror (izoh, kamaytirilgan summa),
+AI hodisalar navbati (tasdiqlash / rad etish), kameralar ro‘yxati va **jonli ko‘rish (HLS, Media3 ExoPlayer)**.
+Operator — AI navbati va kameralar.
+
+**Hamma uchun** — bildirishnomalar (o‘qilgan/o‘qilmagan, hammasini o‘qish), profil (ma’lumotlar, parol almashtirish, faol
+sessiyalar, boshqa qurilmalardan chiqish, chiqish).
+
+Skrinshotlar: [docs/screenshots](docs/screenshots) (emulyator, lokal API seed ma’lumotlari bilan).
+
+## API qoidalari (ilova bajaradi)
+
+- Har so‘rovda `X-Client: mobile/<versiya>` va `X-Client-Device: <brend> <model> - Apteka 360`.
+- `Authorization: Bearer`; 401 → bitta `refresh` (navbat bilan, bir vaqtda ikkita refresh bo‘lmaydi) → qayta urinish → yana 401 bo‘lsa login.
+- Har bir buyruqqa `Idempotency-Key` (UUID).
+- Xato matni (`error`) foydalanuvchiga aynan ko‘rsatiladi; `module_disabled` — «modul o‘chirilgan» holati.
+- `cameras.streamUrl` havolasi 5 daqiqa — pleer uni 4 daqiqada qayta so‘raydi.
+
+Kod: [android/app/src/main/java/uz/apteka360/app](android/app/src/main/java/uz/apteka360/app) —
+`data/` (ApiClient, TokenStore, Repository, Models), `ui/auth`, `ui/home`, `ui/notifications`, `ui/cameras`, `ui/profile`, `ui/theme`, `push/`.
+
+## Talablar (build)
+
+- JDK 17 (JDK 25 bilan AGP 8.2 ishlamaydi)
 - Android SDK: `platforms;android-34`, `build-tools;34.0.0`, `platform-tools`
-  (Android Studio yoki `cmdline-tools` + `sdkmanager`)
 
-Bu kompyuterda toolchain sudo’siz, foydalanuvchi papkalariga o‘rnatilgan va [env.sh](env.sh) orqali ulanadi:
+Bu kompyuterda toolchain sudo’siz, foydalanuvchi papkalarida ([env.sh](env.sh)):
 
 | Nima | Qayerda |
 |---|---|
-| Node 22 (npm bilan) | `~/.local/opt/node22` |
 | Temurin JDK 17 | `~/.local/opt/jdk17` |
-| Android SDK | `~/android-sdk` (`android/local.properties` → `sdk.dir`) |
+| Android SDK + emulyator (AVD `apteka360`) | `~/android-sdk` (`android/local.properties` → `sdk.dir`) |
+| Node 22 (faqat lokal backend uchun) | `~/.local/opt/node22` |
 
 ```bash
 source env.sh
@@ -54,131 +63,85 @@ source env.sh
 ## Build
 
 ```bash
-npm ci
-npx cap sync android
-```
-
-Debug APK:
-
-```bash
 cd android && ./gradlew assembleDebug
 ```
-
 → `android/app/build/outputs/apk/debug/app-debug.apk`
-
-Release APK (imzolangan):
 
 ```bash
 cd android && ./gradlew assembleRelease
 ```
+→ `android/app/build/outputs/apk/release/app-release.apk` (R8 minify, imzolangan)
 
-→ `android/app/build/outputs/apk/release/app-release.apk`
+Tayyor nusxalar `dist/` ga qo‘yiladi (git’ga tushmaydi).
 
-Yoki qisqa: `npm run build:debug`, `npm run build:release`. Tayyor APK nusxalari `dist/` ga qo‘yiladi (git’ga tushmaydi).
+### Lokal API bilan sinash (emulyator)
+
+```bash
+cd ../apteka360-backend && npm install && cd apps/api && PORT=4000 SEED_PASSWORD=demo-local-1234 DEV_OTP=123456 npx tsx src/main.ts
+```
+```bash
+cd android && ./gradlew assembleDebug -PapiBaseUrl=http://10.0.2.2:4000
+```
+Demo hisoblar: `employee@apteka360.uz`, `manager@apteka360.uz`, `owner@apteka360.uz`, `operator@apteka360.uz` (parol — `SEED_PASSWORD`, kod `123456`).
+Prod serverdagi demo parolni loyiha egasidan so‘rang.
 
 ### Release imzosi (keystore)
 
-Release build `android/keystore.properties` faylini o‘qiydi (namuna: [android/keystore.properties.example](android/keystore.properties.example)).
-Fayl ham, `*.jks` ham `.gitignore` da — **repoga tushmaydi**.
-
-Yangi keystore yaratish:
+`android/keystore.properties` (namuna: [android/keystore.properties.example](android/keystore.properties.example)) va `*.jks` `.gitignore` da — **repoga tushmaydi**.
 
 ```bash
 cd android && keytool -genkeypair -v -keystore release.jks -storetype PKCS12 -alias apteka360 -keyalg RSA -keysize 2048 -validity 10000
 ```
 
-so‘ng `android/keystore.properties` ga `storeFile=release.jks`, parollar va `keyAlias=apteka360` yoziladi.
-
-> **Muhim.** Hozirgi `android/release.jks` — vaqtinchalik keystore (paroli faqat lokal `keystore.properties` da).
-> Play Market yoki doimiy tarqatish uchun **yangi, saqlanadigan keystore** yarating va uni ishonchli joyda zaxiralang:
-> keystore yo‘qolsa, o‘sha imzo bilan ilovani yangilab bo‘lmaydi (foydalanuvchilar o‘chirib qayta o‘rnatishi kerak bo‘ladi).
+> **Muhim.** Hozirgi `android/release.jks` — vaqtinchalik keystore (parol faqat lokal `keystore.properties` da). Play Market yoki doimiy
+> tarqatish uchun yangi keystore yarating va zaxiralang: keystore yo‘qolsa ilovani o‘sha imzo bilan yangilab bo‘lmaydi.
 
 ## O‘rnatish (telefon)
 
-1. Telefonda **Sozlamalar → Xavfsizlik → Noma’lum manbalardan o‘rnatish** ga ruxsat bering (yoki APK ochilganda so‘raladi).
-2. APK’ni telefonga yuboring (Telegram/USB) va oching, yoki USB orqali:
+1. **Noma’lum manbalardan o‘rnatish** ga ruxsat bering.
+2. APK’ni yuboring va oching, yoki USB orqali:
 
 ```bash
-adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+adb install -r dist/app-release.apk
 ```
 
-Debug va release APK’lar turli imzo bilan, shuning uchun biri turganda ikkinchisini o‘rnatishdan oldin eskisini o‘chiring.
+Debug (`uz.apteka360.app.debug`) va release (`uz.apteka360.app`) alohida ilova sifatida yonma-yon turadi.
 
 ## CI (GitHub Actions)
 
-[.github/workflows/android.yml](.github/workflows/android.yml) har `push`/PR da debug APK, Secrets bo‘lsa release APK ham quradi
-va `apteka360-apk` artefakti sifatida yuklaydi. Release uchun repo Secrets:
-
-| Secret | Qiymat |
-|---|---|
-| `ANDROID_KEYSTORE_BASE64` | `base64 -w0 android/release.jks` natijasi |
-| `ANDROID_KEYSTORE_PASSWORD` | keystore paroli |
-| `ANDROID_KEY_ALIAS` | `apteka360` |
-| `ANDROID_KEY_PASSWORD` | kalit paroli |
+[.github/workflows/android.yml](.github/workflows/android.yml): har push/PR da debug APK, Secrets bo‘lsa release ham; artefakt `apteka360-apk`.
+Secrets: `ANDROID_KEYSTORE_BASE64` (`base64 -w0 android/release.jks`), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` (`apteka360`), `ANDROID_KEY_PASSWORD`.
 
 ## Push (FCM) ulash qadamlari
 
-Kod va plagin tayyor, faqat Firebase konfiguratsiyasi yo‘q:
+Kod tayyor (`push/PushService.kt`, `POST_NOTIFICATIONS`, kanal, token saqlash), faqat Firebase konfiguratsiyasi yo‘q:
 
-1. [Firebase Console](https://console.firebase.google.com) da loyiha yarating, Android ilova qo‘shing: package `uz.apteka360.app`.
-2. `google-services.json` ni yuklab, `android/app/google-services.json` ga qo‘ying (`.gitignore` da — commit qilinmaydi;
-   CI uchun base64 Secret sifatida yozib, workflow’da faylga chiqaring).
-3. `android/build.gradle` da `com.google.gms:google-services` classpath allaqachon bor; `app/build.gradle` fayl topilsa plaginni o‘zi ulaydi.
-4. Web-panel tomonida (Capacitor ichida ekanini `window.Capacitor?.isNativePlatform()` yoki User-Agent orqali aniqlab):
-   ```js
-   import { PushNotifications } from '@capacitor/push-notifications';
-   await PushNotifications.requestPermissions();
-   await PushNotifications.register();
-   PushNotifications.addListener('registration', t => api.post('/v1/devices/push-token', { token: t.value }));
-   ```
-   (Backend endpointi — `apteka360-backend/docs/API-MOBILE-DESKTOP.md` bo‘yicha kelishiladi.)
-5. Qayta `npx cap sync android` va build.
+1. Firebase Console → loyiha → Android ilova, package `uz.apteka360.app` (va `uz.apteka360.app.debug`).
+2. `google-services.json` → `android/app/google-services.json` (`.gitignore` da).
+3. `android/build.gradle` ga `id 'com.google.gms.google-services' version '4.4.2' apply false`, `app/build.gradle` ga `id 'com.google.gms.google-services'` qo‘shing.
+4. `PushTokens.onNewToken` da tokenni backendga yuboring (endpoint `API-MOBILE-DESKTOP.md` bo‘yicha kelishiladi); kirishdan keyin
+   `FirebaseMessaging.getInstance().token` ni ham yuboring.
+5. Android 13+ da ruxsatni so‘rash: `ActivityResultContracts.RequestPermission()` bilan `POST_NOTIFICATIONS`.
 
-## Versiyani ko‘tarish
-
-`android/app/build.gradle` → `versionCode` (+1) va `versionName`; `capacitor.config.json` → `appendUserAgent` dagi versiya;
-`package.json` → `version`. `MainActivity` X-Client qiymatini `BuildConfig.VERSION_NAME` dan oladi.
-
-## Loyiha tuzilmasi
-
-```
-capacitor.config.json   # appId, server.url, errorPath, splash
-www/                    # error.html (offline), index.html (zaxira redirect)
-assets/                 # ikonka/splash SVG va PNG manbalari (npm run assets)
-android/                # native Android loyihasi (Gradle)
-  app/src/main/java/uz/apteka360/app/MainActivity.java
-  keystore.properties.example
-.github/workflows/android.yml
-env.sh                  # lokal toolchain PATH
-```
-
-## Sinov (emulyator, Android 14, Pixel 6)
-
-Bu kompyuterda `~/android-sdk` ga emulyator ham o‘rnatilgan (AVD nomi `apteka360`). Tekshirilgan:
+## Sinov (emulyator Android 14, Pixel 6, lokal API)
 
 | Holat | Natija |
 |---|---|
-| Ilova ochilishi | web-panel login sahifasi ([docs/screenshots/login.png](docs/screenshots/login.png)) |
-| Internet o‘chiq | o‘zbekcha offline ekran ([docs/screenshots/offline.png](docs/screenshots/offline.png)) |
-| Internet qaytdi | ilova o‘zi bosh sahifani qayta yukladi |
-| Orqaga tugmasi | tarix bo‘lsa orqaga, bo‘lmasa orqa fonga (jarayon tirik qoladi) |
-| Landshaft | ishlaydi ([docs/screenshots/landscape.png](docs/screenshots/landscape.png)) |
-
-```bash
-source env.sh
-emulator -avd apteka360 &
-adb install -r dist/app-debug.apk
-```
+| Login → OTP → yangi qurilma → sessiya | ✔ (xodim va mudir) |
+| Noto‘g‘ri parol (prod API) | ✔ server matni «Login yoki parol noto‘g‘ri» |
+| Xodim: grafik, avans so‘rovi yuborish | ✔ so‘rov serverga yozildi, holat «Kutilmoqda» |
+| Bildirishnomalar | ✔ xodim so‘rovi mudirga bildirishnoma bo‘lib keldi |
+| Mudir: so‘rovni tasdiqlash | ✔ `m.requestDecide` 200, ro‘yxat yangilandi |
+| Ilovani qayta ochish | ✔ refresh token bilan sessiya tiklandi |
+| Profil, sessiyalar | ✔ |
+| Kameralar ro‘yxati | ✔ (lokal seedda modul o‘chiq — pleer server matnini ko‘rsatdi) |
+| Release (R8) APK prod API bilan | ✔ |
 
 ## Cheklovlar
 
-- **X-Client XHR’da yo‘q.** Android WebView `fetch`/XMLHttpRequest so‘rovlariga native tomondan sarlavha qo‘sha olmaydi.
-  Sarlavha faqat sahifa (main-frame) so‘rovlarida ketadi. API so‘rovlarida `X-Client: mobile/<versiya>` bo‘lishi uchun
-  web-panel (`apteka360-frontend-web`) Capacitor ichida ekanini aniqlab (`window.Capacitor?.isNativePlatform()` yoki
-  UA’dagi `Apteka360Mobile/<versiya>`) o‘zi sarlavhani qo‘shishi kerak — 3–5 qatorlik o‘zgarish.
-- **HLS jonli ko‘rish** haqiqiy qurilmada va login ortidagi kamera sahifasida tekshirilmagan (emulyatorda faqat login ekranigacha sinaldi). WebView HLS’ni qo‘llaydi,
-  lekin kamera oqimi HTTPS bo‘lishi shart (`allowMixedContent=false`); `http://` HLS bo‘lsa, kameralar proxy orqali HTTPS’da berilishi kerak.
-- **Offline ekran** faqat asosiy sahifa yuklanmaganda chiqadi. Sahifa ochiq turganda internet uzilsa, web-panelning o‘z xato xabarlari ishlaydi.
-- **Sessiya saqlanishi** web-panel cookie/localStorage’iga bog‘liq; WebView ularni ilova o‘chirilguncha saqlaydi.
-- **Release keystore vaqtinchalik** (yuqoriga qarang). Push — FCM konfiguratsiyasisiz, faqat joy tayyor.
-- Ilova iOS uchun sozlanmagan (`npx cap add ios` macOS’da qo‘shiladi).
+- **HLS jonli oqim** haqiqiy kamera bilan sinalmagan: lokal seedda «Kameralar» moduli o‘chiq, prod uchun demo parol yo‘q.
+  Pleer Media3 ExoPlayer HLS — standart; oqim HTTPS bo‘lishi kerak (cleartext faqat `10.0.2.2`/`localhost` uchun debugda ruxsat).
+- **Smena almashish**: `/v1/employees` xodimga faqat o‘zini qaytaradi — hamkasb ro‘yxati bo‘lmasa ID qo‘lda kiritiladi (API cheklovi).
+- Push — FCM konfiguratsiyasisiz (yuqoridagi qadamlar). Face ID / biometriya yo‘q.
+- Release keystore vaqtinchalik. iOS yo‘q.
+- Ta’til sanasi matn sifatida kiritiladi (API `label` matn qabul qiladi), kalendar tanlagich yo‘q.

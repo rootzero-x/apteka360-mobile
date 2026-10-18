@@ -1,20 +1,16 @@
-# Node
-node_modules/
-npm-debug.log*
-
-# Capacitor / Android build chiqishlari
+# Android / Gradle build chiqishlari
 android/build/
 android/app/build/
 android/.gradle/
 android/.idea/
+android/*.iml
+android/app/*.iml
 android/local.properties
 android/captures/
-android/app/src/main/assets/public/
-android/app/src/main/assets/capacitor.config.json
-android/app/src/main/assets/capacitor.plugins.json
 android/app/release/
 android/app/debug/
 .gradle/
+.kotlin/
 
 # Sirlar — HECH QACHON commit qilinmaydi
 android/keystore.properties
@@ -25,10 +21,11 @@ android/app/google-services.json
 .env
 .env.*
 
-# Chiqish APK'lar (dist/ orqali tarqatiladi, repoda saqlanmaydi)
+# Chiqish APK'lar (dist/ da lokal saqlanadi, repoga tushmaydi)
 dist/*.apk
 
 # OS/IDE
 .DS_Store
 .vscode/
 *.swp
+node_modules/

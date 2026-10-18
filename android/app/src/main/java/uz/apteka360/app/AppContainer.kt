@@ -1,0 +1,43 @@
+package uz.apteka360.app
+
+import android.content.Context
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import uz.apteka360.app.data.ApiClient
+import uz.apteka360.app.data.Me
+import uz.apteka360.app.data.Repository
+import uz.apteka360.app.data.TokenStore
+
+/** Sessiya holati: ilova ochilganda tekshiriladi, 401 da login ekraniga qaytadi. */
+sealed interface AuthState {
+    data object Loading : AuthState
+    data object SignedOut : AuthState
+    data class SignedIn(val me: Me) : AuthState
+}
+
+class AppContainer(context: Context) {
+    val tokens = TokenStore(context.applicationContext)
+    private val _auth = MutableStateFlow<AuthState>(AuthState.Loading)
+    val auth: StateFlow<AuthState> = _auth
+
+    val api = ApiClient(tokens, onSessionExpired = { _auth.value = AuthState.SignedOut })
+    val repo = Repository(api, tokens)
+
+    suspend fun restoreSession() {
+        if (!tokens.hasSession) { _auth.value = AuthState.SignedOut; return }
+        try {
+            if (api.restore()) _auth.value = AuthState.SignedIn(repo.me()) else { tokens.clear(); _auth.value = AuthState.SignedOut }
+        } catch (e: uz.apteka360.app.data.NetworkException) {
+            // oflayn: saqlangan foydalanuvchi bilan kiritamiz, so'rovlar o'z xatosini ko'rsatadi
+            val u = tokens.userJson?.let { runCatching { uz.apteka360.app.data.json.decodeFromString<uz.apteka360.app.data.User>(it) }.getOrNull() }
+            _auth.value = if (u != null) AuthState.SignedIn(Me(role = u.role, name = u.name, ini = u.ini, title = u.title, scope = u.scope)) else AuthState.SignedOut
+        } catch (e: Exception) {
+            tokens.clear(); _auth.value = AuthState.SignedOut
+        }
+    }
+
+    suspend fun onSignedIn() { _auth.value = AuthState.SignedIn(repo.me()) }
+    suspend fun signOut() { repo.logout(); _auth.value = AuthState.SignedOut }
+}
+
+val Context.container: AppContainer get() = (applicationContext as App).container
