@@ -8,10 +8,10 @@ WebView yo‘q — barcha ekranlar native.
 |---|---|
 | Ilova nomi | Apteka 360 |
 | applicationId | `uz.apteka360.app` (debug: `uz.apteka360.app.debug`) |
-| Versiya | 1.0.0 (versionCode 2) — `android/app/build.gradle` |
+| Versiya | 1.1.0 (versionCode 3) — `android/app/build.gradle` |
 | minSdk / target | 24 (Android 7.0) / 34 (Android 14) |
 | API | `BuildConfig.API_BASE_URL` — `android/app/build.gradle` |
-| Stek | Kotlin 2.0, Compose BOM 2024.09, Navigation, OkHttp, kotlinx.serialization, Media3 (HLS), EncryptedSharedPreferences, Firebase Messaging |
+| Stek | Kotlin 2.0, Compose BOM 2024.09, Navigation, OkHttp, kotlinx.serialization, Media3 (HLS + audio), AudioRecord (push-to-talk), EncryptedSharedPreferences, Firebase Messaging |
 
 ## Ekranlar
 
@@ -24,7 +24,10 @@ tiklanadi, 401 da login ekraniga qaytadi.
 jarima kartasi va e’tiroz, o‘z so‘rovlari holati, hamkasblarning smena so‘rovlariga rozilik, push xabarlar.
 
 **Mudir / Egasi (MANAGER, OWNER)** — kutayotgan so‘rovlar (avans, ta’til, smena, e’tiroz) bo‘yicha qaror (izoh, kamaytirilgan summa),
-AI hodisalar navbati (tasdiqlash / rad etish), kameralar ro‘yxati va **jonli ko‘rish (HLS, Media3 ExoPlayer)**.
+AI hodisalar navbati (tasdiqlash / rad etish), kameralar ro‘yxati va **jonli ko‘rish (HLS, Media3 ExoPlayer)**:
+«Ovoz» tugmasi — kamera mikrofoni (`audio.in`, HLS'dagi AAC trek) ni yoqish/o‘chirish; «Gapirish» — bosib turib kameraga gapirish
+(`audio.out`, backend 0.6.1 `cameras.talk`): mikrofon → PCM 16-bit 8 kHz mono, 200 ms bo‘laklar → Edge `{talkUrl}` (`op=start` / bo‘laklar / `op=stop`),
+60 s cheklov, holat indikatori, `RECORD_AUDIO` ruxsati; Edge xatolari (band 409, muddati o‘tgan 401, karnay yo‘q 503) o‘zbekcha.
 Operator — AI navbati va kameralar.
 
 **Hamma uchun** — bildirishnomalar (o‘qilgan/o‘qilmagan, hammasini o‘qish), profil (ma’lumotlar, parol almashtirish, faol
@@ -38,7 +41,7 @@ Skrinshotlar: [docs/screenshots](docs/screenshots) (emulyator, lokal API seed ma
 - `Authorization: Bearer`; 401 → bitta `refresh` (navbat bilan, bir vaqtda ikkita refresh bo‘lmaydi) → qayta urinish → yana 401 bo‘lsa login.
 - Har bir buyruqqa `Idempotency-Key` (UUID).
 - Xato matni (`error`) foydalanuvchiga aynan ko‘rsatiladi; `module_disabled` — «modul o‘chirilgan» holati.
-- `cameras.streamUrl` havolasi 5 daqiqa — pleer uni 4 daqiqada qayta so‘raydi.
+- `cameras.streamUrl` havolasi 5 daqiqa — pleer uni 4 daqiqada qayta so‘raydi; `cameras.talk` havolasi ham 4 daqiqa keshlanadi.
 
 Kod: [android/app/src/main/java/uz/apteka360/app](android/app/src/main/java/uz/apteka360/app) —
 `data/` (ApiClient, TokenStore, Repository, Models), `ui/auth`, `ui/home`, `ui/notifications`, `ui/cameras`, `ui/profile`, `ui/theme`, `push/`.
@@ -136,9 +139,20 @@ Kod tayyor (`push/PushService.kt`, `POST_NOTIFICATIONS`, kanal, token saqlash), 
 | Profil, sessiyalar | ✔ |
 | Kameralar ro‘yxati | ✔ (lokal seedda modul o‘chiq — pleer server matnini ko‘rsatdi) |
 | Release (R8) APK prod API bilan | ✔ |
+| Gapirish (soxta Edge bilan) | ✔ `op=start` → 3200 baytlik PCM bo‘laklar (200 ms) → `op=stop`, indikator, mikrofon ruxsati |
+
+### Unit testlar
+
+```bash
+cd android && ./gradlew testDebugUnitTest
+```
+`TalkProtocolTest` (talk URL, bo‘lak hajmi, xato matnlari, maxSec) va `ModelsTest` (0.6.1 `audio`/`TalkUrl` JSON).
 
 ## Cheklovlar
 
+- **Kamera ovozi va gapirish haqiqiy Edge/kamera bilan sinalmagan** (emulyatorda mikrofon va Hikvision karnay yo‘q): talk oqimi
+  soxta Edge serveri bilan tekshirildi (`tools`siz, `/tmp` skript). Yubileyniy Edge’da `cam-c1`/`cam-c16` audio bor — haqiqiy telefonda
+  mudir hisobi bilan sinash kerak. HLS’dagi AAC audio trekni ExoPlayer standart ijro qiladi.
 - **HLS jonli oqim** haqiqiy kamera bilan sinalmagan: lokal seedda «Kameralar» moduli o‘chiq, prod uchun demo parol yo‘q.
   Pleer Media3 ExoPlayer HLS — standart; oqim HTTPS bo‘lishi kerak (cleartext faqat `10.0.2.2`/`localhost` uchun debugda ruxsat).
 - **Smena almashish**: `/v1/employees` xodimga faqat o‘zini qaytaradi — hamkasb ro‘yxati bo‘lmasa ID qo‘lda kiritiladi (API cheklovi).

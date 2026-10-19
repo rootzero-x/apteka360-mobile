@@ -4,7 +4,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-class Repository(private val api: ApiClient, private val tokens: TokenStore) {
+class Repository(val api: ApiClient, private val tokens: TokenStore) {
 
     // ---------- Auth ----------
     suspend fun login(login: String, password: String): LoginChallenge =
@@ -76,6 +76,7 @@ class Repository(private val api: ApiClient, private val tokens: TokenStore) {
     suspend fun markRead(id: String) { api.command("notifications.markRead", buildJsonObject { put("id", id) }) }
     suspend fun markAllRead() { api.command("notifications.markAllRead", buildJsonObject {}) }
     suspend fun streamUrl(cameraId: String): StreamUrl = api.commandAs("cameras.streamUrl", buildJsonObject { put("id", cameraId); put("quality", "sub") })
+    suspend fun talkUrl(cameraId: String): TalkUrl = api.commandAs("cameras.talk", buildJsonObject { put("id", cameraId) })
     suspend fun revokeSession(sid: String) { api.command("auth.revokeSession", buildJsonObject { put("sid", sid) }) }
     suspend fun revokeOthers() { api.command("auth.revokeOthers", buildJsonObject {}) }
     suspend fun changePassword(current: String, next: String) { api.command("profile.changePassword", buildJsonObject { put("current", current); put("next", next) }) }

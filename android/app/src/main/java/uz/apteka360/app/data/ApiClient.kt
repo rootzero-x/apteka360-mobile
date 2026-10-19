@@ -111,6 +111,23 @@ class ApiClient(
             }
         }
 
+    /**
+     * Edge media-proksiga to'g'ridan-to'g'ri so'rov (talkUrl bilan imzolangan, Authorization kerak emas).
+     * @return HTTP kodi va tana.
+     */
+    suspend fun rawPost(url: String, body: ByteArray, contentType: String = "application/octet-stream"): Pair<Int, String> =
+        withContext(Dispatchers.IO) {
+            val req = Request.Builder().url(url)
+                .header("X-Client", clientHeader)
+                .post(body.toRequestBody(contentType.toMediaType()))
+                .build()
+            try {
+                http.newCall(req).execute().use { r -> r.code to (r.body?.string() ?: "") }
+            } catch (e: IOException) {
+                throw NetworkException(e)
+            }
+        }
+
     /** @return true — yangilandi */
     private suspend fun tryRefresh(): Boolean {
         val rt = tokens.refreshToken ?: return false

@@ -239,8 +239,23 @@ data class Camera(
     val bitrateKbps: Double? = null,
 )
 
+/** 0.6.1: Edge heartbeat'dan — `in`: oqimda kamera mikrofoni (HLS'da AAC trek), `out`: karnay bor (cameras.talk). */
 @Serializable
-data class StreamUrl(val whepUrl: String? = null, val hlsUrl: String? = null, val snapshotUrl: String? = null, val expiresAt: String? = null)
+data class CameraAudio(@SerialName("in") val input: Boolean = false, @SerialName("out") val output: Boolean = false)
+
+@Serializable
+data class StreamUrl(
+    val whepUrl: String? = null,
+    val hlsUrl: String? = null,
+    val snapshotUrl: String? = null,
+    val expiresAt: String? = null,
+    val audio: CameraAudio = CameraAudio(),
+    val privacy: Boolean = false,
+)
+
+/** cameras.talk javobi: `{mediaUrl}/cam-{id}/talk?tk=…`, 5 daqiqa amal qiladi. */
+@Serializable
+data class TalkUrl(val talkUrl: String, val expiresAt: String = "", val maxSec: Int = 60)
 
 @Serializable
 data class BranchLite(val id: String, val name: String = "", val short: String = "")
