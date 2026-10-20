@@ -1,6 +1,8 @@
 package uz.apteka360.app.data
 
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -48,7 +50,30 @@ class Repository(val api: ApiClient, private val tokens: TokenStore) {
     suspend fun employees(): List<Employee> = api.getAs("/v1/employees")
     suspend fun cameras(): List<Camera> = api.getAs("/v1/cameras")
     suspend fun sessions(): List<AuthSession> = api.getAs("/v1/auth/sessions")
-    suspend fun branches(): List<BranchLite> = api.getAs("/v1/branches")
+    suspend fun branches(): List<Branch> = api.getAs("/v1/branches")
+
+    // ---------- Desktop bilan bir xil ekranlar ----------
+    suspend fun dashboard(): Dashboard = api.getAs("/v1/dashboard")
+    suspend fun approvals(): List<Approval> = api.getAs("/v1/approvals")
+    suspend fun audit(): List<AuditEntry> = api.getAs("/v1/audit")
+    suspend fun settings(): Settings = api.getAs("/v1/settings")
+    suspend fun fomCashToday(): Map<String, CashChannels> = api.getAs("/v1/fomCashToday")
+    suspend fun desktop(branchId: String?): DeskState = api.getAs("/v1/desktop" + (if (branchId != null) "?branchId=$branchId" else ""))
+    suspend fun aiEvents(): List<AiEvent> = api.getAs("/v1/aiEvents")
+    suspend fun expenses(): List<Expense> = api.getAs("/v1/expenses")
+    suspend fun suppliers(): List<Supplier> = api.getAs("/v1/suppliers")
+    suspend fun approvalsDecide(id: String, status: String, comment: String): Approval = api.commandAs("approvals.decide", buildJsonObject { put("id", id); put("status", status); put("comment", comment) })
+    suspend fun deskCashClose(body: JsonObject): JsonObject = api.postJson("/v1/commands/desk.cashClose", body).jsonObject
+    suspend fun deskResolveConflict(body: JsonObject): JsonObject = api.postJson("/v1/commands/desk.resolveConflict", body).jsonObject
+
+    // ---------- HR ----------
+    suspend fun employeesFull(includeDismissed: Boolean = true): List<EmployeeFull> = api.getAs("/v1/employees" + (if (includeDismissed) "?includeDismissed=1" else ""))
+    suspend fun schedule(): Map<String, List<String>> = api.getAs("/v1/schedule")
+    suspend fun swaps(): List<SwapRow> = api.getAs("/v1/swaps")
+    suspend fun payroll(): PayrollRun = api.getAs("/v1/payroll")
+    suspend fun payrollRules(): PayrollRulesDoc = api.getAs("/v1/payrollRules")
+    suspend fun cmd(name: String, body: JsonObject): JsonElement = api.postJson("/v1/commands/$name", body)
+    suspend fun auditLog(action: String, obj: String, branchId: String?) { runCatching { cmd("audit.log", buildJsonObject { put("action", action); put("object", obj); put("branchId", branchId); put("before", "—"); put("after", "—"); put("reason", "—"); put("sensitive", true) }) } }
 
     // ---------- Mobil buyruqlar (har biri yangilangan MobileState qaytaradi) ----------
     suspend fun mobileCommand(name: String, body: JsonObject = buildJsonObject {}): MobileState = api.commandAs("m.$name", body)

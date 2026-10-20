@@ -6,6 +6,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import okhttp3.MediaType.Companion.toMediaType
@@ -55,6 +56,15 @@ class ApiClient(
     suspend fun post(path: String, body: String?, auth: Boolean = true, idempotent: Boolean = false): String =
         call("POST", path, body ?: "{}", auth, idempotent)
 
+    /** PUT / DELETE / POST — desktop `A.api(method, path, body)` muqobili. */
+    suspend fun request(method: String, path: String, body: JsonObject? = null): String =
+        call(method, path, if (method == "GET") null else (body?.toString() ?: "{}"), auth = true, idempotent = method == "POST")
+
+    suspend inline fun <reified T> requestAs(method: String, path: String, body: JsonObject? = null): T = json.decodeFromString(request(method, path, body))
+
+    suspend fun getJson(path: String): JsonElement = json.parseToJsonElement(get(path))
+    suspend fun postJson(path: String, body: JsonObject): JsonElement = json.parseToJsonElement(post(path, body.toString(), true, true))
+
     suspend inline fun <reified T> getAs(path: String): T = json.decodeFromString(get(path))
 
     suspend inline fun <reified T> postAs(path: String, body: JsonObject, idempotent: Boolean = false): T =
@@ -103,7 +113,12 @@ class ApiClient(
                 .header("X-Client-Device", deviceHeader)
             if (token != null) b.header("Authorization", "Bearer $token")
             if (idem != null) b.header("Idempotency-Key", idem)
-            if (method == "POST") b.post((body ?: "{}").toRequestBody(jsonType))
+            when (method) {
+                "POST" -> b.post((body ?: "{}").toRequestBody(jsonType))
+                "PUT" -> b.put((body ?: "{}").toRequestBody(jsonType))
+                "DELETE" -> b.delete((body ?: "{}").toRequestBody(jsonType))
+                "PATCH" -> b.patch((body ?: "{}").toRequestBody(jsonType))
+            }
             try {
                 http.newCall(b.build()).execute().use { r -> Resp(r.code, r.body?.string() ?: "", token) }
             } catch (e: IOException) {

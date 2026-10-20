@@ -257,7 +257,5 @@ data class StreamUrl(
 @Serializable
 data class TalkUrl(val talkUrl: String, val expiresAt: String = "", val maxSec: Int = 60)
 
-@Serializable
-data class BranchLite(val id: String, val name: String = "", val short: String = "")
 
 typealias Json = JsonObject

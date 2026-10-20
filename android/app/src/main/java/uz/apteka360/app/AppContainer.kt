@@ -36,6 +36,14 @@ class AppContainer(context: Context) {
         }
     }
 
+    /** Filiallar keshi (desktop `A.branchesCached`). */
+    @Volatile var branches: List<uz.apteka360.app.data.Branch> = emptyList()
+    suspend fun branchesCached(force: Boolean = false): List<uz.apteka360.app.data.Branch> {
+        if (branches.isEmpty() || force) runCatching { repo.branches() }.onSuccess { branches = it }
+        return branches
+    }
+    fun branchName(id: String?): String = if (id == null) "Tarmoq" else branches.firstOrNull { it.id == id }?.label ?: id
+
     suspend fun onSignedIn() { _auth.value = AuthState.SignedIn(repo.me()) }
     suspend fun signOut() { repo.logout(); _auth.value = AuthState.SignedOut }
 }
