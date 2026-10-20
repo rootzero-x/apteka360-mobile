@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.VolumeOff
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
@@ -93,6 +95,16 @@ fun PlayerScreen(repo: Repository, cameraId: String, cameraName: String, onBack:
     var state by remember { mutableStateOf("Ulanmoqda…") }
     var reloadKey by remember { mutableStateOf(0) }
     var soundOn by remember { mutableStateOf(false) }
+    var full by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    val activity = ctx as? android.app.Activity
+    androidx.compose.runtime.LaunchedEffect(full) {
+        activity ?: return@LaunchedEffect
+        activity.requestedOrientation = if (full) android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        val ctl = androidx.core.view.WindowCompat.getInsetsController(activity.window, activity.window.decorView)
+        if (full) { ctl.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars()); ctl.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE } else ctl.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+    }
+    DisposableEffect(Unit) { onDispose { activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED; activity?.let { androidx.core.view.WindowCompat.getInsetsController(it.window, it.window.decorView).show(androidx.core.view.WindowInsetsCompat.Type.systemBars()) } } }
+    androidx.activity.compose.BackHandler(enabled = full) { full = false }
 
     val player = remember {
         ExoPlayer.Builder(ctx).build().apply {
@@ -162,11 +174,11 @@ fun PlayerScreen(repo: Repository, cameraId: String, cameraName: String, onBack:
     LaunchedEffect(talkState) { if (talkState is TalkState.Error) { talkError = (talkState as TalkState.Error).message } }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(cameraName) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Orqaga") } }) },
+        topBar = { if (!full) TopAppBar(title = { Text(cameraName) }, navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Orqaga") } }, actions = { IconButton(onClick = { full = true }) { Icon(Icons.Default.Fullscreen, "To‘liq ekran") } }) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
-            Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(Color.Black), contentAlignment = Alignment.Center) {
+            Box((if (full) Modifier.fillMaxSize() else Modifier.fillMaxWidth().aspectRatio(16f / 9f)).background(Color.Black), contentAlignment = Alignment.Center) {
                 if (hlsUrl != null && error == null) AndroidView(factory = {
                     PlayerView(it).apply {
                         this.player = player
@@ -186,9 +198,10 @@ fun PlayerScreen(repo: Repository, cameraId: String, cameraName: String, onBack:
                     onClick = { soundOn = !soundOn; player.volume = if (soundOn) 1f else 0f },
                     modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).background(Color.Black.copy(alpha = .45f), RoundedCornerShape(50)),
                 ) { Icon(if (soundOn) Icons.Default.VolumeUp else Icons.Default.VolumeOff, if (soundOn) "Ovozni o‘chirish" else "Ovozni yoqish", tint = Color.White) }
+                if (full) IconButton(onClick = { full = false }, modifier = Modifier.align(Alignment.TopStart).padding(8.dp).background(Color.Black.copy(alpha = .45f), RoundedCornerShape(50))) { Icon(Icons.Default.FullscreenExit, "Chiqish", tint = Color.White) }
             }
 
-            Column(Modifier.padding(16.dp)) {
+            if (!full) Column(Modifier.padding(16.dp)) {
                 // Gapirish (karnay bo'lsa)
                 if (audio.output) {
                     val talking = talkState is TalkState.Talking
@@ -237,5 +250,27 @@ fun PlayerScreen(repo: Repository, cameraId: String, cameraName: String, onBack:
                 Text("Har bir jonli ko‘rish va gapirish audit jurnaliga yoziladi.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             }
         }
+    }
+}
+
+
+/** Video devor plitkasi uchun ovozsiz, kontrolsiz HLS pleer. */
+@OptIn(UnstableApi::class)
+@Composable
+fun MiniPlayer(repo: Repository, cameraId: String, modifier: Modifier = Modifier) {
+    val ctx = LocalContext.current
+    var err by remember { mutableStateOf<String?>(null) }
+    val player = remember { ExoPlayer.Builder(ctx).build().apply { playWhenReady = true; volume = 0f } }
+    DisposableEffect(Unit) { onDispose { player.release() } }
+    LaunchedEffect(cameraId) {
+        while (true) {
+            try { val s = repo.streamUrl(cameraId); val url = s.hlsUrl ?: break
+                player.setMediaSource(HlsMediaSource.Factory(DefaultHttpDataSource.Factory()).createMediaSource(MediaItem.fromUri(url))); player.prepare(); delay(4 * 60 * 1000L)
+            } catch (e: Exception) { err = if (e is ApiException && e.status == 503) "Edge oflayn" else "Video ochilmadi"; break }
+        }
+    }
+    Box(modifier, contentAlignment = Alignment.Center) {
+        AndroidView(factory = { PlayerView(it).apply { this.player = player; useController = false; resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM } }, modifier = Modifier.fillMaxSize())
+        err?.let { Text(it, color = Color(0xFF9A9A9A), style = MaterialTheme.typography.labelMedium) }
     }
 }

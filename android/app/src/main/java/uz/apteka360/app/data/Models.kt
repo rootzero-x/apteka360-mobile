@@ -237,7 +237,13 @@ data class Camera(
     val recording: Boolean = true,
     val status: String? = null,
     val bitrateKbps: Double? = null,
-)
+    val rtsp: String? = null,
+    val nvr: String? = null,
+    val aiTasks: List<String> = emptyList(),
+    val audio: CameraAudio? = null,
+) {
+    val st: String get() = status ?: if (health == "down" || rtsp == "down") "offline" else "online"
+}
 
 /** 0.6.1: Edge heartbeat'dan — `in`: oqimda kamera mikrofoni (HLS'da AAC trek), `out`: karnay bor (cameras.talk). */
 @Serializable

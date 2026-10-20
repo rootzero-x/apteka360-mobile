@@ -101,12 +101,12 @@ fun MainScaffold(c: AppContainer, me: Me, onSignOut: () -> Unit) {
             screen("notifications") { NotificationsScreen(c.repo) }
             screen("audit") { AuditScreen(c) }
             screen("cash") { CashScreen(c, me, it) }
-            screen("cameras") { CamerasScreen(c.repo) { cam -> nav.navigate("player/${enc(cam.id)}/${enc(cam.name)}") } }
+            screen("cameras") { CamerasAdminScreen(c, me, it) { cam -> nav.navigate("player/${enc(cam.id)}/${enc(cam.name)}") } }
             composable("player/{id}/{name}") { e ->
                 val id = e.arguments?.getString("id") ?: return@composable
                 PlayerScreen(c.repo, URLDecoder.decode(id, "UTF-8"), URLDecoder.decode(e.arguments?.getString("name") ?: "", "UTF-8"), onBack = { nav.popBackStack() })
             }
-            screen("profile") { ProfileScreen(me, c.repo, onSignOut) }
+            screen("profile") { ProfileScreen(c, me, onSignOut) }
             screen("employees") { EmployeesScreen(c, me, it, go) }
             composable("employee/{p}", listOf(navArgument("p") { type = NavType.StringType })) { e -> if (Access.can("employees", me.role)) EmployeeDetailScreen(c, me, p(e) ?: "", go, onBack = { nav.popBackStack() }) else Denied("employees") }
             screen("schedule") { ScheduleScreen(c, me, it, go) }
@@ -124,11 +124,17 @@ fun MainScaffold(c: AppContainer, me: Me, onSignOut: () -> Unit) {
             screen("payables") { PayablesScreen(c, me, it, go) }
             screen("doctors") { DoctorsScreen(c, me, it) }
             screen("expiry") { ExpiryScreen(c, me) }
+            screen("ai") { AiReviewScreen(c, me, it) }
+            screen("videowall") { VideoWallScreen(c, me) { cam -> nav.navigate("player/${enc(cam.id)}/${enc(cam.name)}") } }
+            screen("live") { LiveBranchScreen(c, me, go) { cam -> nav.navigate("player/${enc(cam.id)}/${enc(cam.name)}") } }
+            screen("fom") { FomScreen(c, me) }
+            screen("health") { HealthScreen(c, me, go) }
+            screen("users") { UsersScreen(c, me) }
+            screen("roles") { RolesScreen(c, me) }
+            screen("modules") { ModulesScreen(c, me) }
+            screen("aiSettings") { AiSettingsScreen(c, me) }
+            screen("settings") { SettingsScreen(c, me, go) }
             screen("more") { MoreScreen(me, tabs, go) }
-            // Hali qurilmagan bo'limlar — keyingi bosqichlarda (COVERAGE-ANDROID.md)
-            Access.NAV.map { it.id }.filter { it !in setOf("dashboard", "mobile", "branches", "approvals", "notifications", "audit", "cash", "cameras", "profile", "employees", "schedule", "attendance", "payroll", "payrollRules", "expenses", "cashflow", "pnl", "forecast", "analytics", "reports", "tax", "suppliers", "payables", "doctors", "expiry") }.forEach { id ->
-                screen(id) { Placeholder(id) }
-            }
         }
     }
 }

@@ -9,5 +9,6 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        uz.apteka360.app.ui.theme.ThemePref.load(this)
     }
 }

@@ -15,7 +15,7 @@ sealed interface AuthState {
     data class SignedIn(val me: Me) : AuthState
 }
 
-class AppContainer(context: Context) {
+class AppContainer(val context: Context) {
     val tokens = TokenStore(context.applicationContext)
     private val _auth = MutableStateFlow<AuthState>(AuthState.Loading)
     val auth: StateFlow<AuthState> = _auth
@@ -35,6 +35,12 @@ class AppContainer(context: Context) {
             tokens.clear(); _auth.value = AuthState.SignedOut
         }
     }
+
+    private val prefs = context.applicationContext.getSharedPreferences("apteka360.ui", Context.MODE_PRIVATE)
+    /** Biometrik tasdiq (tasdiqlar va 10 mln+ summalar) — foydalanuvchi sozlamasi. */
+    var biometricEnabled: Boolean
+        get() = prefs.getBoolean("biometric", true)
+        set(v) { prefs.edit().putBoolean("biometric", v).apply() }
 
     /** Filiallar keshi (desktop `A.branchesCached`). */
     @Volatile var branches: List<uz.apteka360.app.data.Branch> = emptyList()

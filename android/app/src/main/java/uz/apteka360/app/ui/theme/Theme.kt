@@ -10,6 +10,8 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
@@ -80,8 +82,15 @@ val AppShapes = Shapes(
     medium = RoundedCornerShape(14.dp), large = RoundedCornerShape(18.dp), extraLarge = RoundedCornerShape(24.dp),
 )
 
+/** Foydalanuvchi tanlagan mavzu (system / light / dark) — aylantirishda va qayta ochishda saqlanadi. */
+object ThemePref {
+    var mode by androidx.compose.runtime.mutableStateOf("system")
+    fun load(ctx: android.content.Context) { mode = ctx.getSharedPreferences("apteka360.ui", android.content.Context.MODE_PRIVATE).getString("theme", "system") ?: "system" }
+    fun set(c: uz.apteka360.app.AppContainer, v: String) { mode = v; c.context.getSharedPreferences("apteka360.ui", android.content.Context.MODE_PRIVATE).edit().putString("theme", v).apply() }
+}
+
 @Composable
-fun Apteka360Theme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun Apteka360Theme(dark: Boolean = when (ThemePref.mode) { "dark" -> true; "light" -> false; else -> isSystemInDarkTheme() }, content: @Composable () -> Unit) {
     val colors = if (dark) DarkColors else LightColors
     val view = LocalView.current
     if (!view.isInEditMode) {
