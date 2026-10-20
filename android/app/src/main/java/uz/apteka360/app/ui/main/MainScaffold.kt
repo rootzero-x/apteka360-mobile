@@ -18,6 +18,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,14 +79,39 @@ fun MainScaffold(c: AppContainer, me: Me, onSignOut: () -> Unit) {
     }
     val goTab: (String) -> Unit = { id -> nav.navigate(id) { popUpTo(nav.graph.findStartDestination().id) { saveState = true }; launchSingleTop = true; restoreState = true } }
 
-    Scaffold(bottomBar = {
-        if (!hideBar) NavigationBar {
+    val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600
+    val pending by c.pendingRoute.collectAsState()
+    LaunchedEffect(pending) {
+        val r = pending ?: return@LaunchedEffect
+        c.pendingRoute.value = null
+        if (r.startsWith("/")) uz.apteka360.app.ui.screens.linkTo(r, go)
+        else { val id = r.substringBefore('/'); val p = r.substringAfter('/', "").ifBlank { null }; if (Access.can(id, me.role) || id in setOf("branch", "employee")) go(id, p) }
+    }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var branchesReady by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(c.branches.isNotEmpty()) }
+    LaunchedEffect(Unit) { runCatching { c.branchesCached() }; branchesReady = true } // filial nomlari (xom id o‘rniga)
+    val askNotif = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) {}
+    LaunchedEffect(Unit) {
+        if (android.os.Build.VERSION.SDK_INT >= 33 && androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) askNotif.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+    }
+    val moreSel = route == "more" || (route.substringBefore('?') !in tabs && !route.startsWith("player") && !route.startsWith("branch/") && !route.startsWith("employee/"))
+    androidx.compose.foundation.layout.Row(Modifier.fillMaxSize()) {
+    if (wide && !hideBar) androidx.compose.material3.NavigationRail(containerColor = MaterialTheme.colorScheme.surface) {
+        androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 12.dp))
+        tabs.forEach { id ->
+            val it = Access.byId[id] ?: return@forEach
+            val selected = dest?.hierarchy?.any { d -> d.route?.substringBefore('?') == id } == true
+            androidx.compose.material3.NavigationRailItem(selected = selected, onClick = { goTab(id) }, icon = { Icon(it.icon, it.label) }, label = { Text(Access.short(id), maxLines = 1) })
+        }
+        androidx.compose.material3.NavigationRailItem(selected = moreSel, onClick = { goTab("more") }, icon = { Icon(Icons.Default.Menu, "Yana") }, label = { Text("Yana") })
+    }
+    Scaffold(modifier = Modifier.weight(1f), bottomBar = {
+        if (!hideBar && !wide) NavigationBar {
             tabs.forEach { id ->
                 val it = Access.byId[id] ?: return@forEach
                 val selected = dest?.hierarchy?.any { d -> d.route?.substringBefore('?') == id } == true
-                NavigationBarItem(selected = selected, onClick = { goTab(id) }, icon = { Icon(it.icon, it.label) }, label = { Text(it.label.substringBefore(" ("), maxLines = 1, overflow = TextOverflow.Ellipsis) })
+                NavigationBarItem(selected = selected, onClick = { goTab(id) }, icon = { Icon(it.icon, it.label) }, label = { Text(Access.short(id), maxLines = 1, overflow = TextOverflow.Ellipsis) })
             }
-            val moreSel = route == "more" || (route.substringBefore('?') !in tabs && !route.startsWith("player") && !route.startsWith("branch/"))
             NavigationBarItem(selected = moreSel, onClick = { goTab("more") }, icon = { Icon(Icons.Default.Menu, "Yana") }, label = { Text("Yana") })
         }
     }, containerColor = MaterialTheme.colorScheme.background) { pad ->
@@ -134,8 +163,9 @@ fun MainScaffold(c: AppContainer, me: Me, onSignOut: () -> Unit) {
             screen("modules") { ModulesScreen(c, me) }
             screen("aiSettings") { AiSettingsScreen(c, me) }
             screen("settings") { SettingsScreen(c, me, go) }
-            screen("more") { MoreScreen(me, tabs, go) }
+            screen("more") { MoreScreen(c, me, tabs, go) }
         }
+    }
     }
 }
 

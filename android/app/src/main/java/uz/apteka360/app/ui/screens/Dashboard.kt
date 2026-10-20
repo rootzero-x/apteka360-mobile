@@ -16,6 +16,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -61,7 +64,11 @@ fun DashboardScreen(c: AppContainer, me: Me, go: (String, String?) -> Unit) {
         val ai = if (Access.can("ai", role)) runCatching { c.repo.aiEvents() }.getOrDefault(emptyList()) else emptyList()
         DashData(d, forbidden, br, ap, sup, fom, ai)
     }
-    ScreenScaffold(title = Fmt.greeting(me.name), sub = Fmt.longDate() + " · so‘nggi 30 kun") {
+    var quick by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    val canExp = Access.can("expenses", role) && !Access.readOnly(role) && role in listOf("OWNER", "SUPER_ADMIN", "FINANCE", "MANAGER")
+    val canCash = Access.can("cash", role) && !Access.readOnly(role)
+    ScreenScaffold(title = Fmt.greeting(me.name), sub = Fmt.longDate() + " · so‘nggi 30 kun", fab = if (canExp || canCash) androidx.compose.material.icons.Icons.Default.Add to { quick = true } else null) {
+        if (quick) uz.apteka360.app.ui.components.PickerSheet("Tez harakat", listOfNotNull(if (canExp) "expenses" to "Harajat qo‘shish" else null, if (canCash) "cash" to "Kassani yopish" else null, if (Access.can("approvals", role)) "approvals" to "Tasdiqlarni ko‘rish" else null), { it.second }, onPick = { (id, _) -> go(id, if (id == "expenses") "new" else null) }, onDismiss = { quick = false })
         DataBox(loader) { x ->
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (x.forbidden || x.d == null) {

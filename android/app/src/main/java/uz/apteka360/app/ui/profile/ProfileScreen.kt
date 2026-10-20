@@ -60,7 +60,7 @@ fun ProfileScreen(c: AppContainer, me: Me, onSignOut: () -> Unit) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (me.role == "EMPLOYEE") item { InfoBar("Xodim rejimi.", "Ish grafigi, so‘rovlar va bildirishlar «Mening ishim» bo‘limida.") }
             item { AppCard {
-                Row(verticalAlignment = Alignment.CenterVertically) { Avatar(me.ini.ifBlank { me.name.take(1) }, 56); Spacer(Modifier.width(14.dp)); Column { Text(me.name, style = MaterialTheme.typography.titleLarge); Text(listOfNotNull(me.title.ifBlank { null }, ROLE[me.role]?.takeIf { it != me.title }, me.branchId?.let { c.branchName(it) }).joinToString(" · "), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium) } }
+                Row(verticalAlignment = Alignment.CenterVertically) { Avatar(me.ini.ifBlank { me.name.take(1) }, 56); Spacer(Modifier.width(14.dp)); Column { Text(me.name, style = MaterialTheme.typography.titleLarge); Text(profileSubtitle(c, me), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium) } }
                 Spacer(Modifier.height(12.dp))
                 Field("F.I.Sh.", name, { name = it }); Field("Telefon", phone, { phone = it }); Field("E-pochta", email, { email = it })
                 InlineError(err1); ok1?.let { InfoBar(it, tone = Tone.Accent) }
@@ -91,4 +91,16 @@ fun ProfileScreen(c: AppContainer, me: Me, onSignOut: () -> Unit) {
     }
     if (confirmLogout) AlertDialog(onDismissRequest = { confirmLogout = false }, title = { Text("Chiqish") }, text = { Text("Hisobdan chiqasizmi?") },
         confirmButton = { TextButton(onClick = { confirmLogout = false; onSignOut() }) { Text("Chiqish") } }, dismissButton = { TextButton(onClick = { confirmLogout = false }) { Text("Bekor") } })
+}
+
+/** «Filial mudiri · Chilonzor 12» — rol va filial nomi sarlavhada bo‘lsa takrorlanmaydi; xom filial id ko‘rsatilmaydi. */
+fun profileSubtitle(c: AppContainer, me: Me): String {
+    val parts = mutableListOf<String>()
+    if (me.title.isNotBlank()) parts += me.title
+    val role = ROLE[me.role]
+    if (role != null && parts.none { it.contains(role, ignoreCase = true) }) parts += role
+    val ids = (listOfNotNull(me.branchId) + me.branchIds).distinct()
+    val names = ids.map { c.branchName(it) }.filter { n -> parts.none { it.contains(n, ignoreCase = true) } }
+    if (names.isNotEmpty() && me.scope != "all") parts += names.joinToString(", ")
+    return parts.joinToString(" · ")
 }

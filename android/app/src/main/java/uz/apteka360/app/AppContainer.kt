@@ -36,6 +36,8 @@ class AppContainer(val context: Context) {
         }
     }
 
+    /** Deep link / push'dan kelgan marshrut (MainScaffold o‘qiydi va tozalaydi). */
+    val pendingRoute = MutableStateFlow<String?>(null)
     private val prefs = context.applicationContext.getSharedPreferences("apteka360.ui", Context.MODE_PRIVATE)
     /** Biometrik tasdiq (tasdiqlar va 10 mln+ summalar) — foydalanuvchi sozlamasi. */
     var biometricEnabled: Boolean

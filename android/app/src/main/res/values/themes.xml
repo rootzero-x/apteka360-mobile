@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Apteka360" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.Apteka360" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
     </style>
     <style name="Theme.Apteka360.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">#1B8A55</item>

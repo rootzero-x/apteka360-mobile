@@ -100,6 +100,8 @@ object Access {
         val a = ACCESS[role] ?: return true
         return key in a
     }
+    /** Pastki panel uchun qisqa nom. */
+    fun short(id: String): String = mapOf("cameras" to "Kameralar", "notifications" to "Xabarlar", "dashboard" to "Asosiy", "payroll" to "Oylik", "videowall" to "Video devor", "ai" to "AI navbat", "mobile" to "Mening ishim", "employees" to "Xodimlar", "schedule" to "Grafik", "approvals" to "Tasdiqlar", "branches" to "Filiallar", "users" to "Foydalanuvchi", "audit" to "Audit", "expenses" to "Harajatlar", "profile" to "Profil")[id] ?: (byId[id]?.label ?: id)
     fun home(role: String): String = HOME[role] ?: "profile"
     fun readOnly(role: String) = role == "AUDITOR"
 

@@ -1,7 +1,7 @@
 package uz.apteka360.app
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
@@ -25,13 +25,14 @@ import uz.apteka360.app.ui.auth.AuthViewModel
 import uz.apteka360.app.ui.main.MainScaffold
 import uz.apteka360.app.ui.theme.Apteka360Theme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val c = container
         splash.setKeepOnScreenCondition { c.auth.value is AuthState.Loading }
+        handleIntent(intent)
         setContent {
             Apteka360Theme {
                 val auth by c.auth.collectAsState()
@@ -49,5 +50,20 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) { super.onNewIntent(intent); handleIntent(intent) }
+
+    /** apteka360://<bo‘lim>/<param> yoki push'dagi "route"/"link" → ilova ichidagi ekran. */
+    private fun handleIntent(intent: android.content.Intent?) {
+        intent ?: return
+        val uri = intent.data
+        val route = when {
+            uri != null && uri.scheme == "apteka360" -> listOfNotNull(uri.host, uri.pathSegments.firstOrNull()).joinToString("/")
+            intent.getStringExtra("route") != null -> intent.getStringExtra("route")
+            intent.getStringExtra("link") != null -> intent.getStringExtra("link")
+            else -> null
+        }
+        if (!route.isNullOrBlank()) container.pendingRoute.value = route
     }
 }

@@ -8,32 +8,31 @@ WebView yo‘q — barcha ekranlar native.
 |---|---|
 | Ilova nomi | Apteka 360 |
 | applicationId | `uz.apteka360.app` (debug: `uz.apteka360.app.debug`) |
-| Versiya | 1.1.0 (versionCode 3) — `android/app/build.gradle` |
+| Versiya | 2.0.0 (versionCode 4) — `android/app/build.gradle` |
 | minSdk / target | 24 (Android 7.0) / 34 (Android 14) |
 | API | `BuildConfig.API_BASE_URL` — `android/app/build.gradle` |
 | Stek | Kotlin 2.0, Compose BOM 2024.09, Navigation, OkHttp, kotlinx.serialization, Media3 (HLS + audio), AudioRecord (push-to-talk), EncryptedSharedPreferences, Firebase Messaging |
 
 ## Ekranlar
 
-**Kirish (hamma uchun)** — login + parol → SMS/Telegram kodi (qayta yuborish taymeri, qolgan urinishlar) → yangi qurilmani
-tasdiqlash («Bu men» / «Bu men emas — bloklash») → sessiya. «Parolni unutdim» oqimi (kod → yangi parol).
-Refresh token Android Keystore bilan shifrlangan holda saqlanadi, access token faqat xotirada; ilova ochilganda refresh orqali
-tiklanadi, 401 da login ekraniga qaytadi.
+Desktop ilovadagi **barcha 36 bo‘lim** Android’da native (Jetpack Compose) — to‘liq jadval: [COVERAGE-ANDROID.md](COVERAGE-ANDROID.md).
+Ko‘rinish `/v1/me` dagi rolga bog‘liq (`ui/nav/Access.kt` — desktop `ACCESS` jadvali bilan bir xil); AUDITOR uchun yozish tugmalari o‘chiq.
 
-**Xodim (EMPLOYEE)** — haftalik grafik, avans/ta’til/smena almashish so‘rovlari (bottom-sheet formalar), limit va ta’til qoldig‘i,
-jarima kartasi va e’tiroz, o‘z so‘rovlari holati, hamkasblarning smena so‘rovlariga rozilik, push xabarlar.
+- **Navigatsiya:** pastki panelda rolga qarab 4 asosiy bo‘lim + «Yana» (qolgan bo‘limlar guruhlangan: Operatsiyalar, HR, Firmalar,
+  Vrachlar, AI nazorat, Analitika, Boshqaruv, Tizim). Planshetda (≥ 600 dp) yon panel (NavigationRail).
+  Masalan Egasi: Asosiy · Tasdiqlar · Kameralar · Xabarlar · Yana; HR: Xodimlar · Grafik · Tasdiqlar · Xabarlar · Yana; xodim: Mening ishim · Xabarlar · Profil.
+- **Asosiy:** Bosh sahifa (KPI, ogohlantirishlar, filiallar, tasdiqlar, AI, pul zaxirasi, FAB «Tez harakat»), Mening ishim (xodim/mudir mobil ekrani).
+- **Operatsiyalar:** Filiallar (+ tafsilot), Sroklar, Kassa yopilishi (FOM farqi, 409 ziddiyat), Harajatlar, Pul oqimi.
+- **HR:** Xodimlar (+ forma, bo‘shatish/tiklash, 7 tabli tafsilot, maxfiy oylik — audit bilan), Grafik, Davomat, Jonli filial, Oylik vedomosti, Oylik formula.
+- **Firmalar/Vrachlar:** Firmalar va to‘lov kalkulyatori, To‘lov kalendari, Vrachlar va ROI.
+- **AI nazorat:** Review navbati, Video devor, Kameralar va zonalar (qo‘shish, sinov, ONVIF qidirish, maxfiylik), jonli ko‘rish
+  (to‘liq ekran landshaft, ovoz, bosib turib gapirish).
+- **Analitika:** P&L, Analitika, Prognoz, Hisobotlar (PDF/XLSX), Soliq.
+- **Boshqaruv/Tizim:** Tasdiqlar, Bildirishlar, Audit, FOM integratsiya, Tizim holati, Foydalanuvchilar (+ Telegram ulash), Rollar,
+  Modullar, AI sozlamalari, Sozlamalar, Profil.
 
-**Mudir / Egasi (MANAGER, OWNER)** — kutayotgan so‘rovlar (avans, ta’til, smena, e’tiroz) bo‘yicha qaror (izoh, kamaytirilgan summa),
-AI hodisalar navbati (tasdiqlash / rad etish), kameralar ro‘yxati va **jonli ko‘rish (HLS, Media3 ExoPlayer)**:
-«Ovoz» tugmasi — kamera mikrofoni (`audio.in`, HLS'dagi AAC trek) ni yoqish/o‘chirish; «Gapirish» — bosib turib kameraga gapirish
-(`audio.out`, backend 0.6.1 `cameras.talk`): mikrofon → PCM 16-bit 8 kHz mono, 200 ms bo‘laklar → Edge `{talkUrl}` (`op=start` / bo‘laklar / `op=stop`),
-60 s cheklov, holat indikatori, `RECORD_AUDIO` ruxsati; Edge xatolari (band 409, muddati o‘tgan 401, karnay yo‘q 503) o‘zbekcha.
-Operator — AI navbati va kameralar.
-
-**Hamma uchun** — bildirishnomalar (o‘qilgan/o‘qilmagan, hammasini o‘qish), profil (ma’lumotlar, parol almashtirish, faol
-sessiyalar, boshqa qurilmalardan chiqish, chiqish).
-
-Skrinshotlar: [docs/screenshots](docs/screenshots) (emulyator, lokal API seed ma’lumotlari bilan).
+**Telefonga xos:** biometrik tasdiq (tasdiqlar; 10 mln+ summalar uchun majburiy), deep link `apteka360://<bo‘lim>/<id>` va push’dan
+ekranga o‘tish, FAB, haptic, predictive back, skeleton/pull-to-refresh, yorug‘/qorong‘i/tizim mavzusi, aylantirishda holat saqlanadi.
 
 ## API qoidalari (ilova bajaradi)
 
@@ -147,6 +146,11 @@ Kod tayyor (`push/PushService.kt`, `POST_NOTIFICATIONS`, kanal, token saqlash), 
 cd android && ./gradlew testDebugUnitTest
 ```
 `TalkProtocolTest` (talk URL, bo‘lak hajmi, xato matnlari, maxSec) va `ModelsTest` (0.6.1 `audio`/`TalkUrl` JSON).
+
+## Biometriya va backend
+
+`approvals.decide` da `biometricToken` faqat Telegram Mini App kanali uchun talab qilinadi; mobil sessiya backendda `web` kanali hisoblanadi.
+Shuning uchun Android’dagi BiometricPrompt — telefondagi qo‘shimcha himoya (server token so‘ramaydi). Sozlama: Profil → Ilova → Biometrik tasdiq.
 
 ## Cheklovlar
 

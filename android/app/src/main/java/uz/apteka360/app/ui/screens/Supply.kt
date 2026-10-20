@@ -1,5 +1,6 @@
 package uz.apteka360.app.ui.screens
 
+import uz.apteka360.app.ui.components.findFragmentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -175,7 +176,9 @@ private fun SupplierDetail(c: AppContainer, me: Me, s: Supplier, st: Settings, c
         val ledger = s.ledger.ifEmpty { listOf(uz.apteka360.app.data.LedgerRow("—", "Nakladnoy (FOM)", "Kirim (FOM)", s.purchases30 / 2, 0)) }
         ledger.forEach { r -> KeyValueRow("${r.date} · ${r.doc}", (if (r.debit > 0) "D ${Fmt.num(r.debit)}" else "") + (if (r.credit > 0) " K ${Fmt.num(r.credit)}" else "")) }
     }
+    val act = androidx.compose.ui.platform.LocalContext.current.findFragmentActivity()
     if (confirm) ConfirmDialog("To‘lov so‘rovini yaratish", "Firma: ${s.name} · Summa: ${Fmt.money(P)} · Manba: Bank hisobi · Foyda: ${Fmt.money(calc.benefit)} · Tasdiqlovchi: ${if (toOwner) "Egasi" else "Moliya admin"}. To‘lov tasdiqlangandan keyin bank orqali qo‘lda o‘tkaziladi.", "Tasdiqqa yuborish", onDismiss = { confirm = false }) {
+        if (P > uz.apteka360.app.ui.components.BIOMETRIC_THRESHOLD) uz.apteka360.app.ui.components.Biometric.confirm(act, "To‘lovni biometrik tasdiqlang", "${s.name} · ${Fmt.money(P)}", required = true)?.let { return@ConfirmDialog it }
         c.repo.cmd("suppliers.createPayment", buildJsonObject { put("supplierId", s.id); put("amount", P); put("benefit", calc.benefit) }); toast = "To‘lov so‘rovi yaratildi va tasdiqqa yuborildi."; null
     }
 }

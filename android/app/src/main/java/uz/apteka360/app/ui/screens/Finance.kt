@@ -1,5 +1,6 @@
 package uz.apteka360.app.ui.screens
 
+import uz.apteka360.app.ui.components.findFragmentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -121,8 +122,8 @@ data class ExpData(val list: List<Expense>, val branches: List<Branch>, val sett
 fun ExpensesScreen(c: AppContainer, me: Me, initialBranch: String?) {
     var reloadKey by remember { mutableStateOf(0) }
     val loader = rememberLoader(reloadKey) { ExpData(c.repo.expenses(), c.branchesCached(true), runCatching { c.repo.settings() }.getOrDefault(Settings())) }
-    var filter by rememberSaveable { mutableStateOf("all") }; var bf by rememberSaveable { mutableStateOf(initialBranch ?: "") }; var q by rememberSaveable { mutableStateOf("") }
-    var addOpen by remember { mutableStateOf(false) }; var detail by remember { mutableStateOf<Expense?>(null) }
+    var filter by rememberSaveable { mutableStateOf("all") }; var bf by rememberSaveable { mutableStateOf(initialBranch?.takeIf { it != "new" } ?: "") }; var q by rememberSaveable { mutableStateOf("") }
+    var addOpen by rememberSaveable { mutableStateOf(initialBranch == "new" && canWriteExpenses(me.role)) }; var detail by remember { mutableStateOf<Expense?>(null) }
     val own = if (me.role == "MANAGER") me.branchId else null
     val scopeIds = own?.let { listOf(it) } ?: (if (me.branchIds.isNotEmpty() && !isNet(me.role)) me.branchIds else null)
     fun inScope(id: String) = scopeIds == null || id in scopeIds
@@ -164,6 +165,7 @@ fun ExpensesScreen(c: AppContainer, me: Me, initialBranch: String?) {
 
 @Composable
 private fun NewExpenseSheet(c: AppContainer, branches: List<Branch>, st: Settings, defBranch: String, onDismiss: () -> Unit, onSaved: () -> Unit) {
+    val act = androidx.compose.ui.platform.LocalContext.current.findFragmentActivity()
     var cat by remember { mutableStateOf<String?>(null) }; var amount by remember { mutableStateOf("") }; var source by remember { mutableStateOf(SOURCES[0]) }
     var branch by remember { mutableStateOf(branches.firstOrNull { it.id == defBranch } ?: branches.firstOrNull()) }
     var receipt by remember { mutableStateOf(false) }; var recurring by remember { mutableStateOf(false) }; var note by remember { mutableStateOf("") }
@@ -173,6 +175,7 @@ private fun NewExpenseSheet(c: AppContainer, branches: List<Branch>, st: Setting
         if (a <= 0) return@FormSheet "Summani kiriting."
         val bb = b ?: return@FormSheet "Filial yo‘q."
         if (ct == "Boshqa" && note.isBlank()) return@FormSheet "«Boshqa» kategoriyasi uchun izoh majburiy"
+        if (a > uz.apteka360.app.ui.components.BIOMETRIC_THRESHOLD) uz.apteka360.app.ui.components.Biometric.confirm(act, "Katta harajatni tasdiqlang", Fmt.money(a), required = true)?.let { return@FormSheet it }
         c.repo.cmd("expenses.create", buildJsonObject { put("branchId", bb.id); put("cat", ct); put("amount", a); put("source", source); put("receipt", receipt); put("note", note.trim()); put("recurring", recurring) }); onSaved(); null
     }) {
         Text("Kategoriyani tanlang", style = MaterialTheme.typography.labelLarge)

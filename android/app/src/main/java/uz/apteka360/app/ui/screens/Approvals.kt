@@ -1,5 +1,6 @@
 package uz.apteka360.app.ui.screens
 
+import uz.apteka360.app.ui.components.findFragmentActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -103,6 +104,9 @@ fun ApprovalDetail(c: AppContainer, me: Me, a: Approval, onUpdate: (Approval) ->
     var err by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     val (stLabel, stTone) = apStatus(a.status)
+    val act = androidx.compose.ui.platform.LocalContext.current.findFragmentActivity()
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val big = kotlin.math.abs(a.amount ?: 0) > uz.apteka360.app.ui.components.BIOMETRIC_THRESHOLD
     Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding().verticalScroll(rememberScrollState())) {
         Text(a.type, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(a.title, style = MaterialTheme.typography.titleLarge)
@@ -113,6 +117,7 @@ fun ApprovalDetail(c: AppContainer, me: Me, a: Approval, onUpdate: (Approval) ->
         KeyValueRow("So‘rovchi", a.requester); KeyValueRow("Filial", c.branchName(a.branchId)); KeyValueRow("Vaqt", a.time); KeyValueRow("Tasdiq darajasi", a.level.ifBlank { "—" })
         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) { Text("Xavf", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f)); Badge(a.risk.ifBlank { "—" }, riskTone(a.risk)) }
         if (a.evidence.isNotBlank()) { Spacer(Modifier.height(8.dp)); Text("Dalil", style = MaterialTheme.typography.titleSmall); Text(a.evidence, style = MaterialTheme.typography.bodyMedium) }
+        if (big && a.status == "pending") { Spacer(Modifier.height(8.dp)); InfoBar("10 mln so‘mdan katta summa", "Tasdiqlash uchun barmoq izi / yuz (yoki ekran qulfi) talab qilinadi.", uz.apteka360.app.ui.components.Tone.Warning) }
         if (a.recommended.isNotBlank()) { Spacer(Modifier.height(8.dp)); InfoBar("Tavsiya", a.recommended) }
         if (a.history.isNotEmpty()) { Spacer(Modifier.height(8.dp)); Text("Tarix", style = MaterialTheme.typography.titleSmall); a.history.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
         if (a.status == "pending" && !Access.readOnly(me.role)) {
@@ -132,7 +137,10 @@ fun ApprovalDetail(c: AppContainer, me: Me, a: Approval, onUpdate: (Approval) ->
                         val cm = comment.trim()
                         if (decide != "approved" && cm.isBlank()) { err = "Sababni yozing."; return@Button }
                         busy = true; err = null
-                        scope.launch { try { onUpdate(c.repo.approvalsDecide(a.id, decide!!, cm)) } catch (e: Exception) { err = e.userMessage() } finally { busy = false } }
+                        scope.launch { try {
+                            if (decide == "approved" && (big || c.biometricEnabled)) uz.apteka360.app.ui.components.Biometric.confirm(act, "Tasdiqlashni biometrik tasdiqlang", a.title + (a.amount?.let { " · " + Fmt.money(it) } ?: ""), required = big)?.let { err = it; return@launch }
+                            onUpdate(c.repo.approvalsDecide(a.id, decide!!, cm)); haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        } catch (e: Exception) { err = e.userMessage() } finally { busy = false } }
                     }, modifier = Modifier.weight(1f)) { Text(t) }
                 }
             }

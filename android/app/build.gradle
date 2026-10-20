@@ -20,8 +20,8 @@ android {
         applicationId 'uz.apteka360.app'
         minSdk 24
         targetSdk 34
-        versionCode 3
-        versionName '1.1.0'
+        versionCode 4
+        versionName '2.0.0'
         buildConfigField 'String', 'API_BASE_URL', '"https://api-apteka.agrom24.uz"'
         buildConfigField 'String', 'TG_BOT', '"apteka360bot"'
         vectorDrawables { useSupportLibrary true }
@@ -85,6 +85,9 @@ dependencies {
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
     implementation 'androidx.datastore:datastore-preferences:1.1.1'
     implementation 'androidx.browser:browser:1.8.0'
+    implementation 'androidx.biometric:biometric:1.1.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.fragment:fragment-ktx:1.8.4'
 
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3'

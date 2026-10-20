@@ -33,7 +33,13 @@ object PushTokens {
         )
         if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
             && android.os.Build.VERSION.SDK_INT >= 33) return
+        val intent = android.content.Intent(ctx, uz.apteka360.app.MainActivity::class.java).apply {
+            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+            (msg.data["route"] ?: msg.data["link"])?.let { putExtra("route", it) }
+        }
+        val pi = android.app.PendingIntent.getActivity(ctx, System.currentTimeMillis().toInt(), intent, android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT)
         nm.notify(System.currentTimeMillis().toInt(), NotificationCompat.Builder(ctx, CHANNEL)
+            .setContentIntent(pi)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(title).setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
