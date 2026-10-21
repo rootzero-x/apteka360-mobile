@@ -80,6 +80,9 @@ fun MainScaffold(c: AppContainer, me: Me, onSignOut: () -> Unit) {
     val goTab: (String) -> Unit = { id -> nav.navigate(id) { popUpTo(nav.graph.findStartDestination().id) { saveState = true }; launchSingleTop = true; restoreState = true } }
 
     val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600
+    val startRoute = Access.home(me.role).let { if (Access.can(it, me.role)) it else tabs.firstOrNull() ?: "profile" }
+    // Bosh bo‘lmagan tabda «Orqaga» — avval bosh tabga qaytadi, ilova yopilmaydi
+    androidx.activity.compose.BackHandler(enabled = nav.previousBackStackEntry?.destination?.route == null && route.substringBefore('?') != startRoute && route.isNotEmpty()) { goTab(startRoute) }
     val pending by c.pendingRoute.collectAsState()
     LaunchedEffect(pending) {
         val r = pending ?: return@LaunchedEffect
@@ -115,7 +118,7 @@ fun MainScaffold(c: AppContainer, me: Me, onSignOut: () -> Unit) {
             NavigationBarItem(selected = moreSel, onClick = { goTab("more") }, icon = { Icon(Icons.Default.Menu, "Yana") }, label = { Text("Yana") })
         }
     }, containerColor = MaterialTheme.colorScheme.background) { pad ->
-        val start = Access.home(me.role).let { if (Access.can(it, me.role)) it else tabs.firstOrNull() ?: "profile" }
+        val start = startRoute
         val param = navArgument("p") { type = NavType.StringType; nullable = true; defaultValue = null }
         fun p(e: androidx.navigation.NavBackStackEntry) = e.arguments?.getString("p")?.let { URLDecoder.decode(it, "UTF-8") }?.takeIf { it.isNotBlank() }
         NavHost(nav, startDestination = start, modifier = Modifier.padding(bottom = pad.calculateBottomPadding()),

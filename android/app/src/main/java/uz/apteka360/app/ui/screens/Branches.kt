@@ -64,7 +64,7 @@ fun HealthDot(health: Int) {
 
 @Composable
 fun BranchDetailScreen(c: AppContainer, me: Me, id: String, go: (String, String?) -> Unit, onBack: () -> Unit) {
-    val loader = rememberLoader(id) { c.branchesCached().firstOrNull { it.id == id } ?: c.branchesCached(true).first { it.id == id } }
+    val loader = rememberLoader(id) { c.branchesCached().firstOrNull { it.id == id } ?: c.branchesCached(true).firstOrNull { it.id == id } ?: throw uz.apteka360.app.data.ApiException(404, "not_found", "Filial topilmadi yoki uni ko‘rishga ruxsat yo‘q") }
     ScreenScaffold(loader.data?.name ?: "Filial", loader.data?.let { "${it.address} · ${it.hours}" }, onBack = onBack) {
         DataBox(loader) { b -> BranchDetail(c, me, b, go) }
     }
