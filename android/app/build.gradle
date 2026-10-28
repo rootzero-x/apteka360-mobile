@@ -20,9 +20,9 @@ android {
         applicationId 'uz.apteka360.app'
         minSdk 24
         targetSdk 34
-        versionCode 4
-        versionName '2.0.0'
-        buildConfigField 'String', 'API_BASE_URL', '"https://api-apteka.agrom24.uz"'
+        versionCode 5
+        versionName '2.0.1'
+        buildConfigField 'String', 'API_BASE_URL', '"https://api.apteka360.uz"'
         buildConfigField 'String', 'TG_BOT', '"apteka360bot"'
         vectorDrawables { useSupportLibrary true }
     }

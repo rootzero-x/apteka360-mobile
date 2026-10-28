@@ -1,14 +1,14 @@
 # Apteka 360 — Android ilovasi (native)
 
 Apteka 360 dorixona tarmog‘i boshqaruv tizimining **native Android ilovasi**: Kotlin + Jetpack Compose (Material 3),
-to‘g‘ridan-to‘g‘ri API bilan ishlaydi (`https://api-apteka.agrom24.uz`, qo‘llanma: `apteka360-backend/docs/API-MOBILE-DESKTOP.md`).
+to‘g‘ridan-to‘g‘ri API bilan ishlaydi (`https://api.apteka360.uz`, qo‘llanma: `apteka360-backend/docs/API-MOBILE-DESKTOP.md`).
 WebView yo‘q — barcha ekranlar native.
 
 | | |
 |---|---|
 | Ilova nomi | Apteka 360 |
 | applicationId | `uz.apteka360.app` (debug: `uz.apteka360.app.debug`) |
-| Versiya | 2.0.0 (versionCode 4) — `android/app/build.gradle` |
+| Versiya | 2.0.1 (versionCode 5) — `android/app/build.gradle` |
 | minSdk / target | 24 (Android 7.0) / 34 (Android 14) |
 | API | `BuildConfig.API_BASE_URL` — `android/app/build.gradle` |
 | Stek | Kotlin 2.0, Compose BOM 2024.09, Navigation, OkHttp, kotlinx.serialization, Media3 (HLS + audio), AudioRecord (push-to-talk), EncryptedSharedPreferences, Firebase Messaging |
